@@ -1,7 +1,19 @@
+#include <stdalign.h>
 #include <stdio.h>
 
-int main() {
-  printf("Hello World!");
+struct Bad {
+  char c;
+  double d;
+  int i;
+};
 
-  return 0;
+struct Good {
+  double d;
+  int i;
+  char c;
+};
+
+int main() {
+  printf("%zu\n", alignof(struct Bad));
+  printf("%zu\n", alignof(struct Good));
 }
