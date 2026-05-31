@@ -9,6 +9,17 @@
 #include <string>
 
 class Chip {
+    struct OpcodeNibbles {
+        uint16_t type;
+        uint16_t x;
+        uint16_t y;
+        uint16_t n;
+        uint16_t nn;
+        uint16_t nnn;
+        OpcodeNibbles() = default;
+        OpcodeNibbles(int type, int x, int y, int n, int nn, int nnn);
+    };
+
     std::array<uint8_t, 4096> memory {};
     std::array<uint8_t, 16> V {};
     uint16_t I = 0;
@@ -23,6 +34,8 @@ class Chip {
     void readROM(const std::string& path);
     void cycle();
     uint16_t fetch();
+    OpcodeNibbles decode(uint16_t opcode);
+    void execute(OpcodeNibbles nibbles);
 public:
     Chip();
     void reset();

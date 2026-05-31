@@ -145,12 +145,59 @@ void Chip::readROM(const std::string& path) {
 }
 
 void Chip::cycle() {
-    uint16_t opcode = fetch();
+    const uint16_t opcode = fetch();
+    OpcodeNibbles nibbles = decode(opcode);
 }
 
 uint16_t Chip::fetch() {
-    assert(pc <= 4096);
-    uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
+    assert(pc <= memory.size());
+    const uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
     pc += 2;
     return opcode;
+}
+
+Chip::OpcodeNibbles Chip::decode(const uint16_t opcode) {
+    return OpcodeNibbles {
+        opcode & 0xF000,
+        opcode & 0x0F00 >> 8,
+        opcode & 0x00F0 >> 4,
+        opcode & 0x000F,
+        opcode & 0x00FF,
+        opcode & 0x0FFF,
+    };
+}
+
+void Chip::execute(OpcodeNibbles nibbles) {
+    switch (nibbles.type) {
+        case 0: {
+            switch (nibbles.nn) {
+                case 0xE0: {
+                    screen.fill({});
+                    break;
+                }
+                default: {
+                    std::cerr << "Unknown opcode" << std::endl;
+                }
+            }
+        }
+        case 1: {
+            pc = nibbles.nnn;
+            break;
+        }
+        case 6: {
+            V[nibbles.x] = nibbles.nn;
+            break;
+        }
+        case 7: {
+            V[nibbles.x] += nibbles.nn;
+            break;
+        }
+        case 0xA: {
+            I = nibbles.nnn;
+            break;
+        }
+        default: {
+            std::cerr << "Unknown opcode" << std::endl;
+        }
+    }
 }
