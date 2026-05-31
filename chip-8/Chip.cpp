@@ -3,6 +3,8 @@
 //
 
 #include "Chip.h"
+
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -140,4 +142,15 @@ void Chip::readROM(const std::string& path) {
     }
     file.seekg(0, std::ios::beg);
     file.read(reinterpret_cast<char*>(&memory[0x200]), file.gcount());
+}
+
+void Chip::cycle() {
+    uint16_t opcode = fetch();
+}
+
+uint16_t Chip::fetch() {
+    assert(pc <= 4096);
+    uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
+    pc += 2;
+    return opcode;
 }

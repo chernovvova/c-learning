@@ -21,6 +21,8 @@ class Chip {
     std::array<bool, 16> keyboard {};
 
     void readROM(const std::string& path);
+    void cycle();
+    uint16_t fetch();
 public:
     Chip();
     void reset();
