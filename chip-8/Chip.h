@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <array>
 #include <string>
+#include <filesystem>
 
 class Chip {
     struct OpcodeNibbles {
@@ -31,14 +32,15 @@ class Chip {
     std::array<std::array<bool, 32>, 64> screen {};
     std::array<bool, 16> keyboard {};
 
-    void readROM(const std::string& path);
-    void cycle();
     uint16_t fetch();
     OpcodeNibbles decode(uint16_t opcode);
     void execute(OpcodeNibbles nibbles);
 public:
     Chip();
     void reset();
+    void readROM(const std::filesystem::path& path);
+    void cycle();
+    void print_screen();
 };
 
 
