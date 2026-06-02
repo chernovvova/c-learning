@@ -8,6 +8,7 @@
 #include <array>
 #include <string>
 #include <filesystem>
+#include <random>
 
 class Chip {
     struct OpcodeNibbles {
@@ -31,16 +32,18 @@ class Chip {
     uint8_t sound = 0;
     std::array<std::array<bool, 32>, 64> screen {};
     std::array<bool, 16> keyboard {};
+    std::mt19937 rand_generator;
 
     uint16_t fetch();
-    OpcodeNibbles decode(uint16_t opcode);
+    static OpcodeNibbles decode(uint16_t opcode);
     void execute(OpcodeNibbles nibbles);
 public:
     Chip();
     void reset();
     void readROM(const std::filesystem::path& path);
     void cycle();
-    void print_screen();
+    void print_screen() const;
+    void tick_timers();
 };
 
 

@@ -136,12 +136,13 @@ void Chip::reset() {
     sound = 0;
     screen.fill({});
     keyboard.fill(false);
+    rand_generator.seed(std::random_device{}());
 }
 
-void Chip::print_screen() {
+void Chip::print_screen() const {
     for (int j = 0; j < screen[0].size(); j++) {
-        for (int i = 0; i < screen.size(); i++) {
-            if (screen[i][j]) {
+        for (auto & i : screen) {
+            if (i[j]) {
                 std::cout << "#";
             }
             else {
@@ -161,7 +162,7 @@ void Chip::readROM(const std::filesystem::path& path) {
     }
 
     file.seekg(0, std::ios::end);
-    uint16_t file_size = file.tellg();
+    const uint16_t file_size = file.tellg();
     if (file_size > (4096 - 0x200)) {
         std::cerr << "File to large. Maximum file size " << 4096 - 0x200 << std::endl;
         return;
@@ -195,6 +196,10 @@ void Chip::execute(const OpcodeNibbles nibbles) {
                     screen.fill({});
                     break;
                 }
+                case 0xEE: {
+                    pc = stack[--sp];
+                    break;
+                }
                 default: {
                     std::cerr << "Unknown opcode" << std::endl;
                 }
@@ -205,6 +210,37 @@ void Chip::execute(const OpcodeNibbles nibbles) {
             pc = nibbles.nnn;
             break;
         }
+        case 0x2000: {
+            stack[sp++] = pc;
+            pc = nibbles.nnn;
+            break;
+        }
+        case 0x3000: {
+            if (V[nibbles.x] == nibbles.nn) {
+                pc += 2;
+            }
+            break;
+        }
+        case 0x4000: {
+            if (V[nibbles.x] != nibbles.nn) {
+                pc += 2;
+            }
+            break;
+        }
+        case 0x5000: {
+            switch (nibbles.n){
+                case 0x0: {
+                    if (V[nibbles.x] == V[nibbles.y]) {
+                        pc += 2;
+                    }
+                    break;
+                }
+                default: {
+                    std::cerr << "Unknown opcode" << std::endl;
+                }
+            }
+            break;
+        }
         case 0x6000: {
             V[nibbles.x] = nibbles.nn;
             break;
@@ -213,23 +249,108 @@ void Chip::execute(const OpcodeNibbles nibbles) {
             V[nibbles.x] += nibbles.nn;
             break;
         }
+        case 0x8000: {
+            switch (nibbles.n) {
+                case 0x0000: {
+                    V[nibbles.x] = V[nibbles.y];
+                    break;
+                }
+                case 0x0001: {
+                    V[nibbles.x] = V[nibbles.x] | V[nibbles.y];
+                    break;
+                }
+                case 0x0002: {
+                    V[nibbles.x] = V[nibbles.x] & V[nibbles.y];
+                    break;
+                }
+                case 0x0003: {
+                    V[nibbles.x] = V[nibbles.x] ^ V[nibbles.y];
+                    break;
+                }
+                case 0x0004: {
+                    uint8_t flag;
+                    if (static_cast<int>(V[nibbles.x]) + static_cast<int>(V[nibbles.y]) > 255) {
+                        flag = 1;
+                    }
+                    else {
+                        flag = 0;
+                    }
+                    V[nibbles.x] += V[nibbles.y];
+                    V[0xF] = flag;
+                    break;
+                }
+                case 0x0005: {
+                    uint8_t flag;
+                    if (V[nibbles.x] >= V[nibbles.y]) {
+                        flag = 1;
+                    }
+                    else {
+                        flag = 0;
+                    }
+                    V[nibbles.x] -= V[nibbles.y];
+                    V[0xF] = flag;
+                    break;
+                }
+                case 0x0006: {
+                    const uint8_t shifted_bit = V[nibbles.x] & 1;
+                    V[nibbles.x] >>= 1;
+                    V[0xF] = shifted_bit;
+                }
+                case 0x0007: {
+                    uint8_t flag;
+                    if (V[nibbles.y] >= V[nibbles.x]) {
+                        flag = 1;
+                    }
+                    else {
+                        flag = 0;
+                    }
+                    V[nibbles.x] -= V[nibbles.y];
+                    V[0xF] = flag;
+                    break;
+                }
+                case 0x000E: {
+                    const uint8_t shifted_bit = V[nibbles.x] >> 7;
+                    V[nibbles.x] <<= 1;
+                    V[0xF] = shifted_bit;
+                    break;
+                }
+                default: {
+                    std::cerr << "Unknown opcode" << std::endl;
+                }
+            }
+            break;
+        }
+        case 0x9000: {
+            if (nibbles.n == 0 && V[nibbles.x] != V[nibbles.y]) {
+                pc += 2;
+            }
+            break;
+        }
         case 0xA000: {
             I = nibbles.nnn;
             break;
         }
+        case 0xB000: {
+            pc = nibbles.nnn + V[0];
+            break;
+        }
+        case 0xC000: {
+            std::uniform_int_distribution<uint8_t> distribution(0, 255);
+            V[nibbles.x] = distribution(rand_generator) & nibbles.nn;
+            break;
+        }
         case 0xD000: {
-            uint16_t start_x = V[nibbles.x] % 64;
-            uint16_t start_y = V[nibbles.y] % 32;
+            const uint16_t start_x = V[nibbles.x] % 64;
+            const uint16_t start_y = V[nibbles.y] % 32;
             V[0xF] = 0;
 
             for (int i = 0; i < nibbles.n; i++) {
-                uint16_t current_byte = memory[I + i];
-                uint16_t py = start_y + i;
+                const uint16_t current_byte = memory[I + i];
+                const uint16_t py = start_y + i;
                 for (int j = 0; j < 8; j++) {
-                    uint16_t current_bit = current_byte & (0x80 >> j);
-                    if (current_bit) {
-                        uint16_t px = start_x + j;
-                        if (px >= 64 && py >= 32) {
+                    if (current_byte & (0x80 >> j)) {
+                        const uint16_t px = start_x + j;
+                        if (px >= 64 || py >= 32) {
                             continue;
                         }
                         if (screen[px][py]) {
@@ -241,8 +362,92 @@ void Chip::execute(const OpcodeNibbles nibbles) {
             }
             break;
         }
+        case 0xE000: {
+            switch (nibbles.nn) {
+                case 0x9E: {
+                    if (keyboard[V[nibbles.x]]) {
+                        pc += 2;
+                    }
+                    break;
+                }
+                case 0xA1: {
+                    if (!keyboard[V[nibbles.x]]) {
+                        pc += 2;
+                    }
+                    break;
+                }
+                default: {
+                    std::cerr << "Unknown opcode" << std::endl;
+                }
+                }
+            break;
+        }
+        case 0xF000: {
+            switch (nibbles.nn) {
+                case 0x07: {
+                    V[nibbles.x] = delay;
+                    break;
+                }
+                case 0x0A: {
+                    for (const bool i : keyboard) {
+                        if (i) {
+                            break;
+                        }
+                    }
+                    pc -= 2;
+                    break;
+                }
+                case 0x15: {
+                    delay = V[nibbles.x];
+                    break;
+                }
+                case 0x18: {
+                    sound = V[nibbles.x];
+                    break;
+                }
+                case 0x1E: {
+                    I += V[nibbles.x];
+                    break;
+                }
+                case 0x29: {
+                    I = FONT_START + V[nibbles.x] * 5;
+                    break;
+                }
+                case 0x33: {
+                    memory[I] = V[nibbles.x] / 100;
+                    memory[I + 1] = V[nibbles.x] / 10 % 10;
+                    memory[I + 2] = V[nibbles.x] % 10;
+                    break;
+                }
+                case 0x55: {
+                    for (int i = 0; i < nibbles.x + 1; i++) {
+                        memory[I + i] = V[i];
+                    }
+                    break;
+                }
+                case 0x65: {
+                    for (int i = 0; i < nibbles.x + 1; i++) {
+                        V[i] = memory[I + i];
+                    }
+                    break;
+                }
+                default: {
+                    std::cerr << "Unknown opcode" << std::endl;
+                }
+            }
+            break;
+        }
         default: {
             std::cerr << "Unknown opcode" << std::endl;
         }
+    }
+}
+
+void Chip::tick_timers() {
+    if (delay > 0) {
+        delay--;
+    }
+    if (sound > 0) {
+        sound--;
     }
 }
