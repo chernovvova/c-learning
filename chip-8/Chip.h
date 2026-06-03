@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <array>
-#include <string>
 #include <filesystem>
 #include <random>
 
@@ -30,14 +29,15 @@ class Chip {
     uint8_t sp = 0;
     uint8_t delay = 0;
     uint8_t sound = 0;
-    std::array<std::array<bool, 32>, 64> screen {};
-    std::array<bool, 16> keyboard {};
     std::mt19937 rand_generator;
 
     uint16_t fetch();
     static OpcodeNibbles decode(uint16_t opcode);
     void execute(OpcodeNibbles nibbles);
 public:
+    std::array<std::array<bool, 32>, 64> screen {};
+    std::array<bool, 16> keyboard {};
+
     Chip();
     void reset();
     void readROM(const std::filesystem::path& path);
