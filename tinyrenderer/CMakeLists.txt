@@ -7,4 +7,9 @@ add_executable(tinyrenderer
         main.cpp
         tgaimage.cpp
         tgaimage.h
+        Model.cpp
+        Model.h
+        geometry.h
 )
+
+target_compile_definitions(tinyrenderer PRIVATE PROJECT_DIR="${CMAKE_SOURCE_DIR}")

@@ -66,6 +66,7 @@ bool TGAImage::read_tga_file(std::filesystem::path file_path) {
     if (header.image_descriptor & RIGHT_ORIGIN) {
         flip_horizontally();
     }
+    in.close();
     return true;
 }
 
@@ -174,6 +175,7 @@ bool TGAImage::write_tga_file(const std::filesystem::path& file_path, bool verti
         std::cerr << "TGAImage::write_tga_file: failed to write data" << std::endl;
         return false;
     }
+    out.close();
     return true;
 }
 
@@ -233,10 +235,10 @@ TGAColor TGAImage::get(int x, int y) const {
 
 void TGAImage::set(const int x, const int y, const TGAColor& color) {
     if (data.empty()) {
-        std::cerr << "TGAImage::get: data is empty" << std::endl;
+        throw std::invalid_argument("TGAImage::get: data is empty");
     }
-    if (x < 0 || x >= width || y < 0 || y >= height) {
-        std::cerr << "TGAImage::get: out of bounds" << std::endl;
+    if (x < 0 || x > width || y < 0 || y > height) {
+        throw std::out_of_range("TGAImage::get: out of bounds");
     }
     memcpy(data.data() + (x + y * width) * bytes_per_pixel, color.bgra, bytes_per_pixel);
 }

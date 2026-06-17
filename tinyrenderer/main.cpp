@@ -1,7 +1,17 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+
+#include "Model.h"
 #include "tgaimage.h"
+
+constexpr int width = 800;
+constexpr int height = 600;
+
+const TGAColor white = {255, 255, 255, 255};
+const TGAColor green = {0, 255, 0, 255};
+const TGAColor red = {255, 0, 0, 255};
+const TGAColor blue = {0, 0, 255, 255};
 
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color) {
     bool steep = std::abs(ax-bx) < std::abs(ay-by);
@@ -26,16 +36,29 @@ void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color)
     }
 }
 
+std::tuple<int, int> projection(const vec3& vector) {
+    return {(vector.x + 1.) * width / 2, (vector.y + 1.) * height / 2};
+}
+
 int main(int argc, char** argv) {
-    constexpr int width  = 64;
-    constexpr int height = 64;
+    std::filesystem::path model_path = std::filesystem::path(PROJECT_DIR) / "obj" / "diablo3_pose" / "diablo3_pose.obj";
+    Model model(model_path);
+
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    std::srand(std::time({}));
-    for (int i=0; i<(1<<24); i++) {
-        int ax = rand()%width, ay = rand()%height;
-        int bx = rand()%width, by = rand()%height;
-        line(ax, ay, bx, by, framebuffer, { static_cast<uint8_t>(rand()%255), static_cast<uint8_t>(rand()%255), static_cast<uint8_t>(rand()%255), static_cast<uint8_t>(rand()%255) });
+    for (int i = 0; i < model.faces_size(); i++) {
+        std::vector<int> face = model.get_face(i);
+        auto [ax, ay] = projection(model.get_vector(face[0]));
+        auto [bx, by] = projection(model.get_vector(face[1]));
+        auto [cx, cy] = projection(model.get_vector(face[2]));
+        line(ax, ay, bx, by, framebuffer, green);
+        line(bx, by, cx, cy, framebuffer, green);
+        line(ax, ay, cx, cy, framebuffer, green);
+    }
+
+    for (int i = 0; i < model.vertices_size(); i++) {
+        auto [x, y] = projection(model.get_vector(i));
+        framebuffer.set(x, y, red);
     }
 
     framebuffer.write_tga_file("framebuffer.tga");
