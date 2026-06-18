@@ -67,9 +67,9 @@ public:
     bool write_tga_file(const std::filesystem::path& file_path, bool vertical_flip = true, bool lre = true );
     void flip_horizontally();
     void flip_vertically();
-    TGAColor get(int x, int y) const;
+    [[nodiscard]] TGAColor get(int x, int y) const;
     void set(int x, int y, const TGAColor &color);
-    int get_width()  const;
-    int get_height() const;
+    [[nodiscard]] int get_width()  const;
+    [[nodiscard]] int get_height() const;
 };
 #endif //TINYRENDERER_TGAIMAGE_H

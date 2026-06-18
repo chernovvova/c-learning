@@ -6,6 +6,7 @@
 #ifndef TINYRENDERER_GEOMETRY_H
 #define TINYRENDERER_GEOMETRY_H
 #include <iostream>
+#include "tgaimage.h"
 
 template <int n>
 struct vec {
@@ -46,5 +47,10 @@ struct vec<3> {
 };
 
 typedef vec<3> vec3;
+
+void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color);
+void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color);
+
+std::tuple<int, int> projection(const vec3& vector);
 
 #endif //TINYRENDERER_GEOMETRY_H
