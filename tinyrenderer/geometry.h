@@ -48,6 +48,7 @@ struct vec<3> {
 
 typedef vec<3> vec3;
 
+double triangle_area(int ax, int ay, int bx, int by, int cx, int cy);
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color);
 void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color);
 
