@@ -52,6 +52,6 @@ double triangle_area(int ax, int ay, int bx, int by, int cx, int cy);
 void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, TGAColor color);
 void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage &framebuffer, TGAColor color);
 
-std::tuple<int, int> projection(const vec3& vector);
+std::tuple<int, int> projection(const vec3& vector, int width, int height);
 
 #endif //TINYRENDERER_GEOMETRY_H

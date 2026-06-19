@@ -36,6 +36,7 @@ void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage& framebuf
     int bounding_box_max_y = std::max(std::max(ay, by), cy);
 
     double area = triangle_area(ax, ay, bx, by, cx, cy);
+    if (area < 1.0) return;
 
 #pragma omp parallel for
     for (int x = bounding_box_min_x; x <= bounding_box_max_x; x++) {
