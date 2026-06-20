@@ -19,7 +19,7 @@ Model::Model(const std::filesystem::path& filename) {
         char trash;
         if (line.compare(0, 2, "v ") == 0) {
             line_stream >> trash;
-            vec3 vertex;
+            vec3d vertex;
             line_stream >> vertex.x >> vertex.y >> vertex.z;
             vertices.push_back(vertex);
         }
@@ -46,7 +46,7 @@ int Model::faces_size() {
     return faces.size();
 }
 
-vec3 Model::get_vector(const int index) {
+vec3d Model::get_vector(const int index) {
     return vertices[index];
 }
 

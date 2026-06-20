@@ -11,14 +11,14 @@
 
 
 class Model {
-    std::vector<vec3> vertices = {};
+    std::vector<vec3d> vertices = {};
     std::vector<std::vector<int>> faces = {};
 
 public:
     Model(const std::filesystem::path& filename);
     int vertices_size();
     int faces_size();
-    vec3 get_vector(int index);
+    vec3d get_vector(int index);
     std::vector<int> get_face(int index);
 };
 

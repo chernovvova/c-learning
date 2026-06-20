@@ -32,6 +32,7 @@ struct TGAColor {
     TGAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : bgra{b, g, r, a} {};
     TGAColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t bytes_per_pixel)
         : bgra{b, g, r, a}, bytes_per_pixel{bytes_per_pixel} {};
+    TGAColor(uint8_t z) : bgra{z, z, z, z} {};
     uint8_t& operator[](const int i) {return bgra[i];};
 };
 

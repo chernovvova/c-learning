@@ -2,58 +2,68 @@
 
 #include "tgaimage.h"
 
-void line(int ax, int ay, int bx, int by, TGAImage &framebuffer, const TGAColor color) {
-    bool steep = std::abs(ax-bx) < std::abs(ay-by);
+void line(vec2i a, vec2i b, TGAImage &framebuffer, const TGAColor color) {
+    bool steep = std::abs(a.x-b.x) < std::abs(a.y-b.y);
     if (steep) {
-        std::swap(ax, ay);
-        std::swap(bx, by);
+        std::swap(a.x, a.y);
+        std::swap(b.x, b.y);
     }
-    if (ax>bx) { // make it left−to−right
-        std::swap(ax, bx);
-        std::swap(ay, by);
+    if (a.x>b.x) { // make it left−to−right
+        std::swap(a.x, b.x);
+        std::swap(a.y, b.y);
     }
-    int y = ay;
+    int y = a.y;
     int ierror = 0;
-    for (int x=ax; x<=bx; x++) {
+    for (int x=a.x; x<=b.x; x++) {
         if (steep)
             framebuffer.set(y, x, color);
         else
             framebuffer.set(x, y, color);
-        ierror += 2 * std::abs(by-ay);
-        y += (by > ay ? 1 : -1) * (ierror > bx - ax);
-        ierror -= 2 * (bx-ax)   * (ierror > bx - ax);
+        ierror += 2 * std::abs(b.y-a.y);
+        y += (b.y > a.y ? 1 : -1) * (ierror > b.x - a.x);
+        ierror -= 2 * (b.x-a.x)   * (ierror > b.x - a.x);
     }
 }
 
-double triangle_area(const int ax, const int ay, const int bx, const int by, const int cx, const int cy) {
-    return .5 * ((by - ay) * (bx + ax) + (cy - by) * (cx + bx) + (ay - cy) * (ax + cx));
+double triangle_area(vec3i a, vec3i b, vec3i c) {
+    return .5 * ((b.y - a.y) * (b.x + a.x) + (c.y - b.y) * (c.x + b.x) + (a.y - c.y) * (a.x + c.x));
 }
 
-void triangle(int ax, int ay, int bx, int by, int cx, int cy, TGAImage& framebuffer, const TGAColor color) {
-    int bounding_box_min_x = std::min(std::min(ax, bx), cx);
-    int bounding_box_min_y = std::min(std::min(ay, by), cy);
-    int bounding_box_max_x = std::max(std::max(ax, bx), cx);
-    int bounding_box_max_y = std::max(std::max(ay, by), cy);
+void triangle(vec3i a, vec3i b, vec3i c, TGAImage& framebuffer,
+    TGAImage& zbuffer,
+    const TGAColor color
+    ) {
+    int bounding_box_min_x = std::min(std::min(a.x, b.x), c.x);
+    int bounding_box_min_y = std::min(std::min(a.y, b.y), c.y);
+    int bounding_box_max_x = std::max(std::max(a.x, b.x), c.x);
+    int bounding_box_max_y = std::max(std::max(a.y, b.y), c.y);
 
-    double area = triangle_area(ax, ay, bx, by, cx, cy);
+    double area = triangle_area(a, b, c);
     if (area < 1.0) return;
 
 #pragma omp parallel for
     for (int x = bounding_box_min_x; x <= bounding_box_max_x; x++) {
         for (int y = bounding_box_min_y; y <= bounding_box_max_y; y++) {
-            const double alpha = triangle_area(x, y, bx, by, cx, cy) / area;
-            const double beta = triangle_area(x, y, cx, cy, ax, ay) / area;
-            const double gamma = triangle_area(x, y, ax, ay, bx, by) / area;
+            const double alpha = triangle_area({x, y}, b, c) / area;
+            const double beta = triangle_area({x, y}, c, a) / area;
+            const double gamma = triangle_area({x, y}, a, b) / area;
 
             if (alpha < 0 || beta < 0 || gamma < 0) {
                 continue;
             }
 
+            auto z = static_cast<unsigned char>(alpha * a.z + beta * b.z + gamma * c.z);
+            if (z <= zbuffer.get(x, y)[0]) continue;
+
             framebuffer.set(x, y, color);
+            zbuffer.set(x, y, {z});
         }
     }
 }
 
-std::tuple<int, int> projection(const vec3& vector, const int width, const int height) {
-    return {(vector.x + 1.) * width / 2, (vector.y + 1.) * height / 2};
+vec3i projection(const vec3d& vector, const int width, const int height) {
+    int x = (vector.x + 1.) * width / 2;
+    int y = (vector.y + 1.) * height / 2;
+    int z = (vector.z + 1.) * 255. / 2;
+    return {x, y, z};
 }
