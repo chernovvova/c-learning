@@ -221,7 +221,7 @@ TGAColor TGAImage::get(int x, int y) const {
     if (data.empty()) {
         std::cerr << "TGAImage::get: data is empty" << std::endl;
     }
-    if (x < 0 || x >= width || y < 0 || y >= height) {
+    if (x < 0 || x > width || y < 0 || y > height) {
         std::cerr << "TGAImage::get: out of bounds" << std::endl;
     }
 
