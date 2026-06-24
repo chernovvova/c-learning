@@ -11,6 +11,7 @@ add_executable(tinyrenderer
         Model.h
         geometry.h
         geometry.cpp
+        globals.h
 )
 
 target_compile_definitions(tinyrenderer PRIVATE PROJECT_DIR="${CMAKE_SOURCE_DIR}")

@@ -1,50 +1,54 @@
 #include "tgaimage.h"
 #include "geometry.h"
 #include "Model.h"
+#include <algorithm>
 #include <random>
-
-constexpr int width = 1200;
-constexpr int height = 900;
-
-const TGAColor white = {255, 255, 255, 255};
-const TGAColor green = {0, 255, 0, 255};
-const TGAColor red = {255, 0, 0, 255};
-const TGAColor blue = {0, 0, 255, 255};
-const TGAColor grey = {128, 128, 128, 255};
-
-vec3d rot(vec3d v) {
-    constexpr double a = M_PI/6;
-    const mat<3,3, double> Ry = {{{std::cos(a), 0, std::sin(a)}, {0,1,0}, {-std::sin(a), 0, std::cos(a)}}};
-    return Ry * v;
-}
-
-vec3d persp(vec3d v) {
-    const double c = 3;
-    return v / (1 - v.z / c);
-}
+#include <vector>
+#include <limits>
+#include "globals.h"
 
 int main(int argc, char** argv) {
     std::srand(std::time(0));
 
-    TGAImage framebuffer(width, height, TGAImage::RGB);
-    TGAImage zbuffer(width, height, TGAImage::GRAYSCALE);
+    TGAImage framebuffer(WIDTH, HEIGHT, TGAImage::RGB);
+    std::vector<double> zbuffer(WIDTH * HEIGHT, -std::numeric_limits<double>::max());
     Model model(std::filesystem::path(PROJECT_DIR) / "obj" / "diablo3_pose" / "diablo3_pose.obj");
 
-    for (int i = 0; i < model.faces_size(); i++) {
-        vec3i a_proj = projection(persp(rot(model.get_vector(model.get_face(i)[0]))), width, height);
-        vec3i b_proj = projection(persp(rot(model.get_vector(model.get_face(i)[1]))), width, height);
-        vec3i c_proj = projection(persp(rot(model.get_vector(model.get_face(i)[2]))), width, height);
+    lookat();
+    perspective(norm(eye-center));
+    viewport(WIDTH / 16, HEIGHT / 16, WIDTH * 7 / 8, HEIGHT * 7 / 8);
 
+    for (int i = 0; i < model.faces_size(); i++) {
+        vec4d clip[3];
+        for (int d : {0, 1, 2}) {
+            vec3d vector = model.get_vector(model.get_face(i)[d]);
+            clip[d] = Perspective * ModelView * vec4d{vector.x, vector.y, vector.z, 1.};
+        }
         TGAColor color = {
             static_cast<uint8_t>(std::rand() % 255),
             static_cast<uint8_t>(std::rand() % 255),
             static_cast<uint8_t>(std::rand() % 255),
             255
         };
-        triangle(a_proj, b_proj, c_proj, framebuffer, zbuffer, color);
+        rasterize(clip, framebuffer, zbuffer, color);
     }
 
     framebuffer.write_tga_file("framebuffer.tga");
-    zbuffer.write_tga_file("zbuffer.tga");
+
+    TGAImage zbuffer_img(WIDTH, HEIGHT, TGAImage::GRAYSCALE);
+    const double bg = -std::numeric_limits<double>::max();
+    double zmin = std::numeric_limits<double>::max();
+    double zmax = bg;
+    for (double z : zbuffer) {
+        if (z > bg) { zmin = std::min(zmin, z); zmax = std::max(zmax, z); }
+    }
+    if (zmax > zmin) {
+        for (int i = 0; i < WIDTH * HEIGHT; i++) {
+            if (zbuffer[i] == bg) continue;
+            uint8_t val = static_cast<uint8_t>((zbuffer[i] - zmin) / (zmax - zmin) * 255);
+            zbuffer_img.set(i % WIDTH, i / WIDTH, TGAColor(val));
+        }
+    }
+    zbuffer_img.write_tga_file("zbuffer.tga");
     return 0;
 }

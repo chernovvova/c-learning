@@ -5,6 +5,10 @@
 
 #ifndef TINYRENDERER_GEOMETRY_H
 #define TINYRENDERER_GEOMETRY_H
+#include <cmath>
+#include <limits>
+#include <vector>
+
 #include "tgaimage.h"
 
 template <int N, typename T>
@@ -15,28 +19,35 @@ struct vec {
 };
 
 template <int N, typename T>
-vec<N, T> operator+(vec<N, T> a, vec<N, T> b) {
+vec<N, T> operator+(const vec<N, T> a, const vec<N, T> b) {
     vec<N, T> result;
     for (int i = 0; i < N; i++) result[i] = a[i] + b[i];
-    return a;
+    return result;
 }
 
 template <int N, typename T>
-vec<N, T> operator*(vec<N, T> a, T s) {
+vec<N, T> operator-(const vec<N, T> a, const vec<N, T> b) {
+    vec<N, T> result;
+    for (int i = 0; i < N; i++) result[i] = a[i] - b[i];
+    return result;
+}
+
+template <int N, typename T>
+vec<N, T> operator*(const vec<N, T> a, const T s) {
     vec<N, T> result;
     for (int i = 0; i < N; i++) result[i] = a[i] * s;
-    return a;
+    return result;
 }
 
 template <int N, typename T>
-vec<N, T> operator/(vec<N, T> a, T s) {
+vec<N, T> operator/(const vec<N, T> a, const T s) {
     vec<N, T> result;
     for (int i = 0; i < N; i++) result[i] = a[i] / s;
-    return a;
+    return result;
 }
 
 template <int N, typename T>
-T dot(vec<N, T> a, vec<N, T> b) {
+T operator*(const vec<N, T> a, const vec<N, T> b) {
     T r = 0;
     for (int i = 0; i < N; i++) r += a[i] * b[i];
     return r;
@@ -45,27 +56,43 @@ T dot(vec<N, T> a, vec<N, T> b) {
 template <typename T>
 struct vec<2, T> {
     T x = 0, y = 0;
-    T operator[](int i) const { return i == 0 ? x : y; }
-    T& operator[](int i) { return i == 0 ? x : y;}
+    T operator[](const int i) const { return i == 0 ? x : y; }
+    T& operator[](const int i) { return i == 0 ? x : y;}
 };
 
 template <typename T>
 struct vec<3, T> {
     T x = 0, y = 0, z = 0;
-    T operator[](int i) const { return i == 0 ? x : (i == 1 ? y : z); }
-    T& operator[](int i) { return i == 0 ? x : (i == 1 ? y : z); }
+    T operator[](const int i) const { return i == 0 ? x : (i == 1 ? y : z); }
+    T& operator[](const int i) { return i == 0 ? x : (i == 1 ? y : z); }
 };
 
 template <typename T>
 struct vec<4, T> {
     T x = 0, y = 0, z = 0, w = 0;
-    T operator[](int i) const { return i == 0 ? x : (i == 1 ? y : (i == 2) ? z : w); }
-    T& operator[](int i) { return i == 0 ? x : (i == 1 ? y : (i == 2) ? z : w); }
+    T operator[](const int i) const { return i == 0 ? x : (i == 1 ? y : (i == 2) ? z : w); }
+    T& operator[](const int i) { return i == 0 ? x : (i == 1 ? y : (i == 2) ? z : w); }
+    vec<2, T> xy()  const { return {x, y}; }
+    vec<3, T> xyz() const { return {x, y, z}; }
 };
 
-typedef vec<2, int> vec2i;
-typedef vec<3, int> vec3i;
+template <int N, typename T>
+double norm(const vec<N, T>& vector) {
+    return std::sqrt(vector * vector);
+}
+
+template <int N, typename T>
+vec<N, T> normalized(const vec<N, T>& vector) {
+    return vector / norm(vector);
+}
+
+typedef vec<2, double> vec2d;
 typedef vec<3, double> vec3d;
+typedef vec<4, double> vec4d;
+
+inline vec3d cross(const vec3d &v1, const vec3d &v2) {
+    return {v1.y*v2.z - v1.z*v2.y, v1.z*v2.x - v1.x*v2.z, v1.x*v2.y - v1.y*v2.x};
+}
 
 template <int N, int M, typename T>
 struct mat {
@@ -132,8 +159,8 @@ template <int N, int M, typename T>
 mat<N, N, T> operator*(mat<N, M, T> matrix, mat<M, N, T> other_matrix) {
     mat<N, N, T> result {{}};
     for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
-           for (int k = 0; k < N; k++) {
+        for (int j = 0; j < N; j++) {
+           for (int k = 0; k < M; k++) {
                result[i][j] += matrix[i][k] * other_matrix[k][j];
            }
         }
@@ -143,7 +170,7 @@ mat<N, N, T> operator*(mat<N, M, T> matrix, mat<M, N, T> other_matrix) {
 
 template <int N, int M, typename T>
 vec<N, T> operator*(mat<N, M, T> matrix, vec<M, T> vector) {
-    vec<M, T> result = {};
+    vec<N, T> result = {};
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
             result[i] += matrix[i][j] * vector[j];
@@ -213,10 +240,10 @@ mat<3, 3, T> inverse(mat<3, 3, T> matrix) {
     return inverse;
 }
 
-double triangle_area(vec2i a, vec2i b, vec2i c);
-void line(vec2i a, vec2i b, TGAImage &framebuffer, TGAColor color);
-void triangle(vec3i a, vec3i b, vec3i c, TGAImage &framebuffer, TGAImage &zbuffer, TGAColor color);
+void rasterize(const vec4d clip[3], TGAImage &framebuffer, std::vector<double> &zbuffer, const TGAColor color);
 
-vec3i projection(const vec3d& vector, int width, int height);
+void viewport(int x, int y, int width, int height);
+void perspective(double f);
+void lookat();
 
 #endif //TINYRENDERER_GEOMETRY_H
