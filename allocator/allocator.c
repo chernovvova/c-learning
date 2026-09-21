@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "allocator.h"
+#include "test_allocator.h"
 
 const size_t ALLOCATOR_MEMORY_SIZE = 4096;
 
@@ -126,6 +127,12 @@ void my_free(void *ptr) {
     }
 }
 
+void allocator_destroy(void) {
+    free(memory);
+    memory = NULL;
+    offset = 0;
+}
+
 void get_blocks_metadata() {
     size_t current_byte = 0;
    
@@ -135,4 +142,18 @@ void get_blocks_metadata() {
        current_byte += sizeof(struct Block) + block->size;
     }
     printf("---------------------------\n");
+}
+
+
+// FOR TESTS
+size_t get_offset_for_tests(void) {
+    return offset;
+}
+
+unsigned char *get_memory_for_tests(void) {
+    return memory;
+}
+
+size_t get_metadata_size(void) {
+    return sizeof(struct Block);
 }
