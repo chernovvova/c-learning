@@ -1,3 +1,6 @@
+#include <stdalign.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -28,12 +31,20 @@ enum AllocatorError allocator_init(void) {
     return ALLOCATOR_SUCCESS;
 }
 
+size_t get_padding(size_t size) {
+    return (alignof(max_align_t) - size % alignof(max_align_t)) % alignof(max_align_t);
+}
+
+size_t align_size(size_t size) {
+    return size + get_padding(size); 
+}
+
 void split_block(struct Block* block, size_t size) {
     if (block->size - size <= sizeof(struct Block)) {
         return;
     }
     
-    struct Block* splitted_block = (struct Block *)((unsigned char *) (block + 1) + size);
+struct Block* splitted_block = (struct Block *)((unsigned char *) (block + 1) + size);
     splitted_block->is_free = true;
     splitted_block->size = block->size - size - sizeof(struct Block);
     block->size = size;
@@ -61,15 +72,25 @@ void *my_malloc(size_t size) {
         return NULL;
     }
 
-    struct Block* block = find_free_block(size);
+    if (size == 0) {
+        return NULL;
+    }
+
+    if (size > SIZE_MAX - get_padding(size)) {
+        return NULL;
+    }
+
+    size_t aligned_size = align_size(size);
+    
+    struct Block* block = find_free_block(aligned_size);
 
     if (block == NULL) {
-        if (size > ALLOCATOR_MEMORY_SIZE - sizeof(struct Block) - offset) {
+        if (aligned_size > ALLOCATOR_MEMORY_SIZE - sizeof(struct Block) - offset) {
             return NULL;
         }
         block = (struct Block*) &memory[offset];
-        block->size = size;
-        offset += size + sizeof(struct Block);
+        block->size = aligned_size;
+        offset += aligned_size + sizeof(struct Block);
     }
     block->is_free = false;
     

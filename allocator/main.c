@@ -1,20 +1,21 @@
-#include "allocator.h"
+#include <stdio.h>
+#include <stdalign.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-int main() {
-    if (allocator_init() != ALLOCATOR_SUCCESS) {
-        return 1;
-    }
-    
-    void *a = my_malloc(100);
-    void *b = my_malloc(200);
-    void *c = my_malloc(300);
-    
-    my_free(a);
-    get_blocks_metadata();
-    my_free(c);
-    get_blocks_metadata();
-    my_free(b);
-    get_blocks_metadata();
+struct Block {
+    bool is_free;
+    size_t size;
+};
 
-    return 0;
+int main(void)
+{
+    void *ptr = malloc(100);
+
+    printf("address: %p\n", ptr);
+    printf("mod 16: %zu\n", (uintptr_t)ptr % 16);
+
+    free(ptr);
 }
