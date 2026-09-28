@@ -100,7 +100,7 @@ void *my_malloc(size_t size) {
 }
 
 struct Block *get_next_block(struct Block *block) {
-    unsigned char * next_block = (unsigned char *) (block) + sizeof(struct Block) + block->size;
+    unsigned char *next_block = (unsigned char *) (block) + sizeof(struct Block) + block->size;
     if ((unsigned char *) &memory[offset] <= next_block) {
         return NULL;
     }
@@ -123,6 +123,25 @@ struct Block *get_previous_block(struct Block *block) {
     return NULL; 
 }
 
+struct Block *find_block_by_data_pointer(unsigned char *ptr) {
+    if (memory == NULL || ptr == NULL) {
+        return NULL;
+    }
+    
+    struct Block *current_block = (struct Block *) &memory[0];
+
+    while ((uintptr_t) (current_block + 1) <= (uintptr_t) ptr) {
+        if ((unsigned char *)(current_block + 1) == ptr) {
+            return current_block;
+        }
+        current_block = get_next_block(current_block);
+        if (current_block == NULL) {
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
 void merge_blocks(struct Block *block, struct Block *next_block) {
     if ((unsigned char *)(block + 1) + block->size != (unsigned char *) next_block) {
         return;
@@ -134,7 +153,10 @@ void my_free(void *ptr) {
     if (ptr == NULL) {
         return;
     }
-    struct Block *block = (struct Block*)ptr - 1;
+    struct Block *block = find_block_by_data_pointer(ptr);
+    if (block == NULL || block->is_free) {
+        return;
+    }
     block->is_free = true;
     
     struct Block *next_block = get_next_block(block);
